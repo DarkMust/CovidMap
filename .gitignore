@@ -23,4 +23,8 @@ packages
 Thumbs.db
 
 # Config files (consider how you handle appsettings.Production.json/secrets)
-appsettings.Development.json 
+appsettings.Development.json
+
+# Generated build artifacts and archives
+/publish/
+publish.zip 
