@@ -1,0 +1,26 @@
+# General
+[Bb]in/
+[Oo]bj/
+
+# Development
+*.log
+*.user
+*.suo
+*.sln.dotsettings
+*.vsextension
+
+# Package managers
+packages
+
+# Rider
+.idea/
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Config files (consider how you handle appsettings.Production.json/secrets)
+appsettings.Development.json 

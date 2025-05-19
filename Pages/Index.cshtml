@@ -1,0 +1,214 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<div class="glass-news-bar">
+    <span style="font-weight:bold;color:var(--accent);text-shadow:0 0 8px var(--accent);"><i class="fa-solid fa-virus-covid"></i> COVID-19 LIVE</span>
+    <span id="globalStats"></span>
+    <span id="continentStats"></span>
+    <span class="news-ticker" id="newsTicker">Loading news...</span>
+</div>
+
+<div class="stats-container">
+    <div class="stat-card">
+        <h3>Global Cases</h3>
+        <div class="number" id="globalCases">Loading...</div>
+    </div>
+    <div class="stat-card">
+        <h3>Today's Cases</h3>
+        <div class="number" id="todayCases">Loading...</div>
+    </div>
+    <div class="stat-card">
+        <h3>Total Deaths</h3>
+        <div class="number" id="totalDeaths">Loading...</div>
+    </div>
+    <div class="stat-card">
+        <h3>Total Recovered</h3>
+        <div class="number" id="totalRecovered">Loading...</div>
+    </div>
+</div>
+
+<div class="map-container" id="map"></div>
+
+<div class="news-feed">
+    <h3>Latest COVID-19 News</h3>
+    <div id="newsContainer" class="news-container">
+        <div class="news-item">Loading news...</div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Initialize map (zoom in a bit more for marker visibility)
+        const map = L.map('map').setView([20, 0], 3);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Remove the static test marker for now to focus on country markers
+        //L.marker([0, 0]).addTo(map).bindPopup('Test Marker at [0,0]').openPopup();
+
+        // Format numbers
+        function formatNumber(num) {
+            return new Intl.NumberFormat().format(num);
+        }
+
+        // Update stats
+        function updateStats(data) {
+            document.getElementById('globalCases').textContent = formatNumber(data.cases);
+            document.getElementById('todayCases').textContent = formatNumber(data.todayCases);
+            document.getElementById('totalDeaths').textContent = formatNumber(data.deaths);
+            document.getElementById('totalRecovered').textContent = formatNumber(data.recovered);
+            document.getElementById('globalStats').textContent = `🌍 Global: ${formatNumber(data.cases)} cases, ${formatNumber(data.deaths)} deaths, ${formatNumber(data.recovered)} recovered`;
+        }
+
+        // Update continent stats
+        function updateContinentStats(data) {
+            let html = '';
+            data.forEach(c => {
+                html += `<span style='margin-right:18px;'>${c.continent}: <span style='color:var(--accent);font-weight:bold;'>${formatNumber(c.cases)}</span></span>`;
+            });
+            document.getElementById('continentStats').innerHTML = html;
+        }
+
+        // Update news
+        function updateNews(news) {
+            console.log('Updating news with data:', news);
+            const newsContainer = document.getElementById('newsContainer');
+            newsContainer.innerHTML = '';
+            let ticker = '';
+            
+            if (!news || news.length === 0) {
+                console.warn('No news data received');
+                newsContainer.innerHTML = '<div class="news-item">No news available at the moment.</div>';
+                return;
+            }
+
+            news.forEach(item => {
+                console.log('Processing news item:', item);
+                const newsItem = document.createElement('div');
+                newsItem.className = 'news-item';
+                newsItem.innerHTML = `
+                    <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="news-link">
+                        <h4>${item.title}</h4>
+                        <p>${item.description}</p>
+                        <small>${new Date(item.publishedAt).toLocaleDateString()}</small>
+                    </a>
+                `;
+                newsContainer.appendChild(newsItem);
+                ticker += ` <span style='margin-right:40px;'>${item.title}</span> `;
+            });
+            document.getElementById('newsTicker').innerHTML = ticker;
+        }
+
+        // Handle country click
+        function onCountryClick(countryCode) {
+            console.log('Country clicked:', countryCode);
+            fetch(`/api/covid/country/${countryCode}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Country data received:', data);
+                    if (data && data.countryInfo) {
+                        const popup = L.popup()
+                            .setLatLng([data.countryInfo.lat, data.countryInfo.long])
+                            .setContent(`
+                                <h3 style='color:black;font-weight:bold;'>${data.country}</h3>
+                                <p>Today's Cases: <b>${formatNumber(data.todayCases)}</b></p>
+                                <p>Total Cases: <b>${formatNumber(data.cases)}</b></p>
+                                <p>Total Deaths: <b>${formatNumber(data.deaths)}</b></p>
+                                <p>Total Recovered: <b>${formatNumber(data.recovered)}</b></p>
+                            `);
+                        popup.openOn(map);
+                        console.log('Popup opened for:', data.country);
+                    } else {
+                        console.error('Invalid country data received:', data);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching country data:', error);
+                });
+        }
+
+        // Load initial data
+        fetch('/api/covid/global')
+            .then(response => response.json())
+            .then(data => updateStats(data));
+
+        fetch('/api/covid/news')
+            .then(response => {
+                console.log('News API response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('News data received:', data);
+                updateNews(data);
+            })
+            .catch(error => {
+                console.error('Error fetching news:', error);
+                document.getElementById('newsContainer').innerHTML = '<div class="news-item">Error loading news. Please try again later.</div>';
+            });
+
+        fetch('https://disease.sh/v3/covid-19/continents')
+            .then(response => response.json())
+            .then(data => updateContinentStats(data));
+
+        // Add country markers with debug logging, larger radius, and empty check
+        fetch('/api/covid/countries')
+            .then(response => response.json())
+            .then(countries => {
+                console.log('Fetched countries:', countries);
+                console.log('Number of countries fetched:', countries ? countries.length : 0);
+                // Add detailed inspection of first country
+                if (countries && countries.length > 0) {
+                    console.log('First country detailed structure:', JSON.stringify(countries[0], null, 2));
+                }
+
+                if (!countries || countries.length === 0) {
+                    console.warn('No countries data fetched or data is empty. Cannot add markers.');
+                    return;
+                }
+
+                // Add a small delay before adding markers to ensure map is ready
+                setTimeout(() => {
+                    console.log('Inside setTimeout callback.');
+                    console.log('Map object in setTimeout:', map);
+                    console.log('Countries array inside setTimeout:', countries);
+                    console.log('Starting forEach loop...');
+
+                    countries.forEach(country => {
+                         console.log('Processing country:', country.country);
+                        if (country.countryInfo && country.countryInfo.lat && country.countryInfo.long) {
+                            console.log('Attempting to add marker for:', country.country, country.countryInfo.lat, country.countryInfo.long);
+                            try {
+                                 const marker = L.circleMarker([country.countryInfo.lat, country.countryInfo.long], {
+                                    radius: 12,
+                                    color: '#00ffe7',
+                                    fillColor: '#00ffe7',
+                                    fillOpacity: 0.5,
+                                    weight: 2
+                                })
+                                .addTo(map)
+                                .on('click', () => {
+                                    console.log('Marker clicked for:', country.country, 'with ISO2:', country.countryInfo.iso2);
+                                    onCountryClick(country.countryInfo.iso2);
+                                });
+                                 console.log('Marker added successfully for:', country.country);
+                            } catch (e) {
+                                 console.error('Error adding marker for', country.country, e);
+                            }
+                        } else {
+                             console.warn('Skipping marker for', country.country, 'due to missing countryInfo, lat, or long:', country.countryInfo);
+                        }
+                    });
+                     // Invalidate map size after adding markers and a delay
+                    map.invalidateSize();
+                     console.log('Map size invalidated.');
+                     console.log('forEach loop finished.');
+                }, 100);
+            }).catch(error => {
+                 console.error('Error fetching countries data:', error);
+            });
+    </script>
+} 
