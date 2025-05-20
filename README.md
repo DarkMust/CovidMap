@@ -9,6 +9,10 @@ A .NET web application displaying real-time COVID-19 statistics, news, and a dyn
 *   Latest COVID-19 news feed.
 *   Modern glassy design.
 
+## Live Demo
+
+Check out the live application deployed on Azure: [https://covidmap-gahzazcsgehzcxbg.francecentral-01.azurewebsites.net/](https://covidmap-gahzazcsgehzcxbg.francecentral-01.azurewebsites.net/)
+
 ## Technologies Used
 
 *   ASP.NET Core
