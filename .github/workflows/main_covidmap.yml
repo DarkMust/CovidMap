@@ -21,13 +21,13 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore
+        run: dotnet restore "${{github.workspace}}/CovidMap.csproj"
 
       - name: Build with dotnet
-        run: dotnet build --configuration Release --no-restore
+        run: dotnet build "${{github.workspace}}/CovidMap.csproj" --configuration Release --no-restore
 
       - name: dotnet publish
-        run: dotnet publish -c Release -o "${{github.workspace}}/publish" --no-build
+        run: dotnet publish "${{github.workspace}}/CovidMap.csproj" -c Release -o "${{github.workspace}}/publish" --no-build
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
