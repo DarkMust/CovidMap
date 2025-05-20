@@ -86,7 +86,22 @@
                 return;
             }
 
-            news.forEach(item => {
+            // Filter news by title to include only relevant articles
+            const filteredNews = news.filter(item => 
+                item.title && 
+                (item.title.toLowerCase().includes('covid') || item.title.toLowerCase().includes('pandemic'))
+            );
+
+            console.log('Filtered news:', filteredNews);
+
+            if (filteredNews.length === 0) {
+                 console.warn('No relevant news found after filtering');
+                 newsContainer.innerHTML = '<div class="news-item">No relevant news available at the moment.</div>';
+                 document.getElementById('newsTicker').innerHTML = 'No relevant news...';
+                 return;
+            }
+
+            filteredNews.forEach(item => {
                 console.log('Processing news item:', item);
                 const newsItem = document.createElement('div');
                 newsItem.className = 'news-item';
